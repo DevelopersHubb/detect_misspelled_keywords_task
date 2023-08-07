@@ -1,0 +1,29 @@
+name: Lint and Test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint code
+        run: flake8 detect_misspelled_keywords.py test.py
+
+      - name: Run tests
+        run: pytest test.py
