@@ -23,7 +23,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Lint code
-        run: flake8 detect_misspelled_keywords.py test.py
+        run: flake8
 
       - name: Run tests
         run: pytest test.py
