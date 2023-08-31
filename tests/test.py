@@ -1,9 +1,36 @@
 import unittest
-from KeywordSuggestionFetcher import (
-    is_misspelled,
-    find_correct_keyword,
-    process_keyword,
-)
+from unittest.mock import AsyncMock, MagicMock
+
+import aiohttp
+
+from KeywordSuggestionFetcher import (fetch_google_suggestions,
+                                      find_correct_keyword, is_misspelled,
+                                      process_keyword)
+
+
+class TestFetchGoogleSuggestions(unittest.IsolatedAsyncioTestCase):
+
+    async def test_fetch_google_suggestions_successful(self):
+        session_mock = AsyncMock(aiohttp.ClientSession)
+        response_mock = MagicMock()
+        response_mock.json = AsyncMock(return_value=["python", "python"])
+
+        session_mock.get.return_value.__aenter__.return_value = response_mock
+
+        suggestions = await fetch_google_suggestions(session_mock, "python")
+
+        self.assertIn(suggestions, ["python", "python tutorials"])
+        url = "http://suggestqueries.google.com/complete/search?client=firefox&q=python"
+        session_mock.get.assert_called_once_with(url)
+
+    async def test_fetch_google_suggestions_error(self):
+        session_mock = AsyncMock(aiohttp.ClientSession)
+        session_mock.get.side_effect = aiohttp.ClientError("Connection Error")
+
+        suggestions = await fetch_google_suggestions(session_mock, "python")
+
+        self.assertEqual(suggestions, [])
+        session_mock.get.assert_called_once()
 
 
 class TestIsMisspelled(unittest.TestCase):

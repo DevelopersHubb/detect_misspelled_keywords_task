@@ -1,10 +1,21 @@
 import asyncio
 import json
 import logging
+from dataclasses import dataclass
+
 import aiohttp
 from billiard import Pool
 
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+@dataclass
+class Result:
+    keyword: str
+    suggestions: list
+    is_misspelled: bool
+    correct_keyword: str
+    reason: str = None
 
 
 async def fetch_google_suggestions(session, keyword):
@@ -15,7 +26,6 @@ async def fetch_google_suggestions(session, keyword):
             response.raise_for_status()
             data = await response.json(content_type="text/javascript")
             suggestions = data[1]
-
             return suggestions
     except aiohttp.ClientError as e:
         logging.error(f"Error occurred while fetching suggestions at : {e}")
@@ -23,16 +33,9 @@ async def fetch_google_suggestions(session, keyword):
 
 
 def is_misspelled(keyword, suggestions):
-    if not suggestions:
-        return True
-
-    if keyword in suggestions:
+    if keyword in suggestions or len(keyword) <= 2:
         return False
-
-    if len(keyword) <= 2:
-        return False
-
-    return keyword not in suggestions
+    return True
 
 
 def find_correct_keyword(keyword, suggestions):
@@ -58,13 +61,14 @@ def process_keyword(keyword_suggestions):
     is_misspelled_result = is_misspelled(keyword, suggestions)
     correct_keyword_result = find_correct_keyword(keyword, suggestions)
 
-    return (keyword, suggestions, is_misspelled_result, correct_keyword_result)
+    return keyword, suggestions, is_misspelled_result, correct_keyword_result
 
 
 def main():
     keywords = input().split()
     suggestions_list = []
-    pool = Pool()
+    final_results = []
+
     asyncio.set_event_loop(asyncio.new_event_loop())
 
     async def run_asyncio():
@@ -78,24 +82,15 @@ def main():
     loop.run_until_complete(run_asyncio())
     loop.close()
 
+    pool = Pool()
     results = pool.map(process_keyword, suggestions_list)
     pool.close()
 
-    suggestions_list.sort(key=lambda x: keywords.index(x[0]))
-
-    final_results = []
-
-    for (keyword, suggestions, is_misspelled_result, correct_keyword_result) in results:
-        result = {
-            "keyword": keyword,
-            "suggestions": suggestions,
-            "is_misspelled": is_misspelled_result,
-            "correct_keyword": correct_keyword_result,
-            "reason": None,
-        }
+    for keyword, suggestions, is_misspelled_result, correct_keyword_result in results:
+        result = Result(keyword, suggestions, is_misspelled_result, correct_keyword_result)
         final_results.append(result)
-
-    print(json.dumps(final_results, indent=1))
+    json_data = json.dumps([result.__dict__ for result in final_results], indent=2)
+    print(json_data)
 
 
 if __name__ == "__main__":
