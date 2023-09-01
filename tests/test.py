@@ -1,9 +1,11 @@
+import logging
 import unittest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 
 from KeywordSuggestionFetcher import (fetch_google_suggestions,
+                                      fetch_suggestions_async,
                                       find_correct_keyword, is_misspelled,
                                       process_keyword)
 
@@ -88,6 +90,34 @@ class TestProcessKeyword(unittest.TestCase):
         suggestions = ["apple", "banana", "cherry"]
         result = process_keyword((keyword, suggestions))
         self.assertEqual(result, (keyword, suggestions, False, keyword))
+
+
+class TestFetchSuggestionsAsync(unittest.IsolatedAsyncioTestCase):
+
+    async def test_fetch_suggestions_async_success(self):
+        async def mock_fetch_google_suggestions(session, keyword):
+            return ["suggestion1", "suggestion2"]
+
+        keyword = "apple"
+        session = AsyncMock()
+
+        with patch("KeywordSuggestionFetcher.fetch_google_suggestions", side_effect=mock_fetch_google_suggestions):
+            result = await fetch_suggestions_async(keyword, session)
+
+        self.assertEqual(result, (keyword, ["suggestion1", "suggestion2"]))
+
+    async def test_fetch_suggestions_async_exception(self):
+        async def mock_fetch_google_suggestions(session, keyword):
+            raise Exception("Test Exception")
+
+        keyword = "apple"
+        session = AsyncMock()
+
+        with patch("KeywordSuggestionFetcher.fetch_google_suggestions", side_effect=mock_fetch_google_suggestions):
+            with self.assertLogs(level=logging.ERROR):
+                result = await fetch_suggestions_async(keyword, session)
+
+        self.assertEqual(result, (keyword, []))
 
 
 if __name__ == '__main__':

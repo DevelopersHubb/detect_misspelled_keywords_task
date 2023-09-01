@@ -69,8 +69,6 @@ def main():
     suggestions_list = []
     final_results = []
 
-    asyncio.set_event_loop(asyncio.new_event_loop())
-
     async def run_asyncio():
         async with aiohttp.ClientSession() as session:
             tasks = [fetch_suggestions_async(keyword, session) for keyword in keywords]
@@ -80,11 +78,11 @@ def main():
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(run_asyncio())
-    loop.close()
 
     pool = Pool()
     results = pool.map(process_keyword, suggestions_list)
     pool.close()
+    pool.join()
 
     for keyword, suggestions, is_misspelled_result, correct_keyword_result in results:
         result = Result(keyword, suggestions, is_misspelled_result, correct_keyword_result)
