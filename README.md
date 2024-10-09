@@ -17,8 +17,7 @@ This script fetches keyword suggestions from Google's autocomplete service and p
 
 ## How to Use
 1. Install the required dependencies by running:
-'''pip install aiohttp'''
-'''pip install billiard'''
+'''pip install -r requirements.txt'''
 2. Run the script by executing:
 '''python KeywordSuggestionFetcher.py'''
 Provide a space-separated list of keywords as input.
